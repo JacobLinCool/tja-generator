@@ -1,0 +1,8 @@
+gradio==4.36.1
+chainer
+librosa
+matplotlib
+numpy
+pysoundfile
+torch
+scikit-learn
