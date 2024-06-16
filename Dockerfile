@@ -7,7 +7,7 @@ RUN useradd -m -u 1000 user
 
 WORKDIR /app
 
-RUN apt update && apt install -y curl libsndfile1
+RUN apt update && apt install -y curl libsndfile1 ffmpeg
 
 COPY --chown=user ./requirements.txt requirements.txt
 
