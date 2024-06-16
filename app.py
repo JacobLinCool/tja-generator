@@ -13,15 +13,27 @@ KA_MODEL = "./models/ka_model.pth"
 useCUDA = torch.cuda.is_available()
 device = torch.device("cuda" if useCUDA else "cpu")
 
-donNet = convNet()
-donNet = donNet.to(device)
-donNet.load_state_dict(torch.load(DON_MODEL, map_location=device))
+donNet = None
+kaNet = None
 
-kaNet = convNet()
-kaNet = kaNet.to(device)
-kaNet.load_state_dict(torch.load(KA_MODEL, map_location=device))
+
+def load():
+    global donNet, kaNet
+    if donNet is None:
+        donNet = convNet()
+        donNet = donNet.to(device)
+        donNet.load_state_dict(torch.load(DON_MODEL, map_location=device))
+        print("Loaded DON model")
+    if kaNet is None:
+        kaNet = convNet()
+        kaNet = kaNet.to(device)
+        kaNet.load_state_dict(torch.load(KA_MODEL, map_location=device))
+        print("Loaded KA model")
+
 
 def run(file: str) -> Tuple[str, str]:
+    load()
+
     data, sr = sf.read(file, always_2d=True)
     song = Audio(data, sr)
     song.data = (song.data[:, 0] + song.data[:, 1]) / 2
@@ -47,10 +59,10 @@ def run(file: str) -> Tuple[str, str]:
     return synthesized_path, tja
 
 
-
 app = gr.Interface(
     fn=run,
     inputs=[gr.Audio(label="Music", type="filepath")],
     outputs=[gr.Audio(label="Synthesized Audio"), gr.Text(label="TJA")],
+    allow_flagging=False,
 )
 app.queue().launch()
