@@ -65,4 +65,4 @@ app = gr.Interface(
     outputs=[gr.Audio(label="Synthesized Audio"), gr.Text(label="TJA")],
     allow_flagging=False,
 )
-app.queue().launch()
+app.queue().launch(server_name="0.0.0.0")
