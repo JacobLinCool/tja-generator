@@ -36,7 +36,7 @@ def run(file: str) -> Tuple[str, str]:
 
     data, sr = sf.read(file, always_2d=True)
     song = Audio(data, sr)
-    song.data = (song.data[:, 0] + song.data[:, 1]) / 2
+    song.data = song.data.mean(axis=1)
     song.feats = fft_and_melscale(
         song,
         nhop=512,
