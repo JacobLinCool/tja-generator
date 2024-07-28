@@ -165,4 +165,3 @@ def fft_and_melscale(
         print(song.zero_crossing)
 
     return np.array(feat_channels)
-

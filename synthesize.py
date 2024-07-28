@@ -81,12 +81,19 @@ def detection(don_inference, ka_inference, song, filepath):
     song.save(filepath)
 
 
-def create_tja(song, don_timestamp, ka_timestamp=None):
+def create_tja(
+    song,
+    don_timestamp,
+    ka_timestamp=None,
+    title="untitled",
+    subtitle="--",
+    wave="untitled.ogg",
+):
     tja = ""
 
     if ka_timestamp is None:
         timestamp = don_timestamp * 512 / song.samplerate
-        tja += f"TITLE: untitled\nSUBTITLE: --\nBPM: 240\nWAVE:untitled.ogg\nOFFSET:0\n#START\n"
+        tja += f"TITLE: {title}\nSUBTITLE: {subtitle}\nBPM: 240\nWAVE:{wave}\nOFFSET:0\n#START\n"
         i = 0
         time = 0
         while i < len(timestamp):
@@ -107,8 +114,9 @@ def create_tja(song, don_timestamp, ka_timestamp=None):
         ka_timestamp = np.rint(ka_timestamp * 512 / song.samplerate * 100).astype(
             np.int32
         )
-        tja += f"TITLE: untitled\nSUBTITLE: --\nBPM: 240\nWAVE:untitled.ogg\nOFFSET:0\n#START\n"
-        for time in range(np.max((don_timestamp[-1], ka_timestamp[-1]))):
+        tja += f"TITLE: {title}\nSUBTITLE: {subtitle}\nBPM: 240\nWAVE:{wave}\nOFFSET:0\n#START\n"
+        length = np.max((don_timestamp[-1], ka_timestamp[-1]))
+        for time in range(length):
             if np.isin(time, don_timestamp) == True:
                 tja += "1"
             elif np.isin(time, ka_timestamp) == True:
@@ -117,6 +125,8 @@ def create_tja(song, don_timestamp, ka_timestamp=None):
                 tja += "0"
             if time % 100 == 99:
                 tja += ",\n"
+        if length % 100 != 0:
+            tja += "0" * (100 - (length % 100)) + ",\n"
         tja += "\n#END"
 
     return tja

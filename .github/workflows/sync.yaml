@@ -24,6 +24,6 @@ jobs:
                   user: jacoblincool # Hugging Face username or organization name
                   space: odcnn # Hugging Face space name
                   token: ${{ secrets.HF_TOKEN }} # Hugging Face token
-                  title: "ODCNN"
-                  sdk: "docker"
+                  title: "TJA Generator"
+                  sdk: "gradio"
                   models: "[ JacobLinCool/odcnn-320k-100 ]"

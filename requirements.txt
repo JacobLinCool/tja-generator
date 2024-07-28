@@ -1,8 +1,11 @@
-gradio==4.36.1
+gradio
 chainer
 librosa
 matplotlib
 numpy
-pysoundfile
+soundfile
 torch
 scikit-learn
+yt_dlp
+accelerate
+spaces

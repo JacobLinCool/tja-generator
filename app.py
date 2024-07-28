@@ -1,68 +1,82 @@
+import os
 import gradio as gr
 from typing import Tuple
-import numpy as np
-import soundfile as sf
-import tempfile
-from model import *
-from preprocess import *
-from synthesize import *
+from accelerate import Accelerator
+from odcnn import ODCNN
+from youtube import youtube
+
+accelerator = Accelerator()
+device = accelerator.device
 
 DON_MODEL = "./models/don_model.pth"
 KA_MODEL = "./models/ka_model.pth"
 
-useCUDA = torch.cuda.is_available()
-device = torch.device("cuda" if useCUDA else "cpu")
 
-donNet = None
-kaNet = None
+models = {"odcnn-320k-100": ODCNN(DON_MODEL, KA_MODEL, device)}
 
 
-def load():
-    global donNet, kaNet
-    if donNet is None:
-        donNet = convNet()
-        donNet = donNet.to(device)
-        donNet.load_state_dict(torch.load(DON_MODEL, map_location=device))
-        print("Loaded DON model")
-    if kaNet is None:
-        kaNet = convNet()
-        kaNet = kaNet.to(device)
-        kaNet.load_state_dict(torch.load(KA_MODEL, map_location=device))
-        print("Loaded KA model")
+def run(file: str, model: str) -> Tuple[str, str]:
+    return models[model].run(file)
 
 
-def run(file: str) -> Tuple[str, str]:
-    load()
+def from_youtube(url: str, model: str) -> Tuple[str, str, str]:
+    audio = youtube(url)
+    return audio, *run(audio, model)
 
-    data, sr = sf.read(file, always_2d=True)
-    song = Audio(data, sr)
-    song.data = song.data.mean(axis=1)
-    song.feats = fft_and_melscale(
-        song,
-        nhop=512,
-        nffts=[1024, 2048, 4096],
-        mel_nband=80,
-        mel_freqlo=27.5,
-        mel_freqhi=16000.0,
+
+with gr.Blocks() as app:
+    with open(os.path.join(os.path.dirname(__file__), "README.md"), "r") as f:
+        README = f.read()
+        # remove yaml front matter
+        blocks = README.split("---")
+        if len(blocks) > 1:
+            README = "---".join(blocks[2:])
+
+    gr.Markdown(README)
+
+    with gr.Row():
+        with gr.Column():
+            gr.Markdown("## Upload an audio file")
+            audio = gr.Audio(label="Upload an audio file", type="filepath")
+        with gr.Column():
+            gr.Markdown(
+                "## or use a YouTube URL\n\nTry something on [The First Take](https://www.youtube.com/@The_FirstTake)?"
+            )
+            yt = gr.Textbox(
+                label="YouTube URL", placeholder="https://www.youtube.com/watch?v=..."
+            )
+            yt_btn = gr.Button("Use this YouTube URL")
+
+    with gr.Row():
+        model = gr.Radio(
+            label="Select a model",
+            choices=[s for s in models.keys()],
+            value="odcnn-320k-100",
+        )
+        btn = gr.Button("Infer", variant="primary")
+
+    with gr.Row():
+        with gr.Column():
+            synthesized = gr.Audio(
+                label="Synthesized Audio",
+                format="mp3",
+                type="filepath",
+                interactive=False,
+            )
+        with gr.Column():
+            tja = gr.Text(label="TJA", interactive=False)
+
+    btn.click(
+        fn=run,
+        inputs=[audio, model],
+        outputs=[synthesized, tja],
+        api_name="run",
     )
 
-    don_inference = donNet.infer(song.feats, device, minibatch=4192)
-    don_inference = np.reshape(don_inference, (-1))
+    yt_btn.click(
+        fn=from_youtube,
+        inputs=[yt, model],
+        outputs=[audio, synthesized, tja],
+    )
 
-    ka_inference = kaNet.infer(song.feats, device, minibatch=4192)
-    ka_inference = np.reshape(ka_inference, (-1))
-
-    synthesized_path = tempfile.NamedTemporaryFile(suffix=".wav").name
-    detection(don_inference, ka_inference, song, synthesized_path)
-    tja = create_tja(song, song.don_timestamp, song.ka_timestamp)
-
-    return synthesized_path, tja
-
-
-app = gr.Interface(
-    fn=run,
-    inputs=[gr.Audio(label="Music", type="filepath")],
-    outputs=[gr.Audio(label="Synthesized Audio"), gr.Text(label="TJA")],
-    allow_flagging=False,
-)
 app.queue().launch(server_name="0.0.0.0")

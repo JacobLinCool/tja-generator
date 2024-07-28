@@ -1,3 +1,3 @@
-# odcnn-space
+# TJA Generator
 
-HuggingFace Space for https://github.com/seiichiinoue/odcnn
+Use [ODCNN](https://github.com/seiichiinoue/odcnn) to generate TJA from music.
