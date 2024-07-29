@@ -22,7 +22,7 @@ jobs:
               with:
                   github: ${{ secrets.GITHUB_TOKEN }}
                   user: jacoblincool # Hugging Face username or organization name
-                  space: odcnn # Hugging Face space name
+                  space: tja-generator # Hugging Face space name
                   token: ${{ secrets.HF_TOKEN }} # Hugging Face token
                   title: "TJA Generator"
                   sdk: "gradio"
