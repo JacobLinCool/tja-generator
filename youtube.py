@@ -1,8 +1,10 @@
 import os
 import gradio as gr
+from gradio_client import Client
 import yt_dlp
 import tempfile
 import hashlib
+import shutil
 
 
 def youtube(url: str) -> str:
@@ -28,6 +30,13 @@ def youtube(url: str) -> str:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl.download([url])
     except Exception as e:
-        raise gr.Error(f"Failed to download YouTube audio from {url}")
+        print(e)
+        try:
+            ytdl = Client("JacobLinCool/yt-dlp")
+            file = ytdl.predict(api_name="/download", url=url)
+            shutil.move(file, tmp_file + ".mp3")
+        except Exception as e:
+            print(e)
+            raise gr.Error(f"Failed to download YouTube audio from {url}")
 
     return tmp_file + ".mp3"
