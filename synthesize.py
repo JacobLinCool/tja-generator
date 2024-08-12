@@ -88,6 +88,7 @@ def create_tja(
     title="untitled",
     subtitle="--",
     wave="untitled.ogg",
+    safezone=2,
 ):
     tja = ""
 
@@ -116,13 +117,17 @@ def create_tja(
         )
         tja += f"TITLE: {title}\nSUBTITLE: {subtitle}\nBPM: 240\nWAVE:{wave}\nOFFSET:0\n#START\n"
         length = np.max((don_timestamp[-1], ka_timestamp[-1]))
+        safezone_keep = 0
         for time in range(length):
-            if np.isin(time, don_timestamp) == True:
+            if np.isin(time, don_timestamp) == True and safezone_keep <= 0:
                 tja += "1"
-            elif np.isin(time, ka_timestamp) == True:
+                safezone_keep = safezone
+            elif np.isin(time, ka_timestamp) == True and safezone_keep <= 0:
                 tja += "2"
+                safezone_keep = safezone
             else:
                 tja += "0"
+                safezone_keep -= 1
             if time % 100 == 99:
                 tja += ",\n"
         if length % 100 != 0:
