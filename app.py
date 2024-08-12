@@ -4,12 +4,17 @@ from typing import Tuple
 from accelerate import Accelerator
 from odcnn import ODCNN
 from youtube import youtube
+from huggingface_hub import hf_hub_download
 
 accelerator = Accelerator()
 device = accelerator.device
 
-DON_MODEL = "./models/don_model.pth"
-KA_MODEL = "./models/ka_model.pth"
+DON_MODEL = hf_hub_download(
+    repo_id="JacobLinCool/odcnn-320k-100", filename="don_model.pth"
+)
+KA_MODEL = hf_hub_download(
+    repo_id="JacobLinCool/odcnn-320k-100", filename="ka_model.pth"
+)
 
 
 models = {"odcnn-320k-100": ODCNN(DON_MODEL, KA_MODEL, device)}
