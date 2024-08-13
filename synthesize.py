@@ -1,10 +1,10 @@
 import numpy as np
 from librosa.util import peak_pick
+
 from preprocess import *
 
 
 def smooth(x, window_len=11, window="hanning"):
-
     if x.ndim != 1:
         raise ValueError
 
@@ -29,7 +29,7 @@ def smooth(x, window_len=11, window="hanning"):
     return y
 
 
-def detection(don_inference, ka_inference, song, filepath):
+def detection(don_inference, ka_inference, song, filepath, delta=0.05):
     """detects notes disnotesiresultg don and ka"""
 
     don_inference = smooth(don_inference, 5)
@@ -42,7 +42,7 @@ def detection(don_inference, ka_inference, song, filepath):
             post_max=2,
             pre_avg=4,
             post_avg=5,
-            delta=0.05,
+            delta=delta,
             wait=3,
         )
         + 7
@@ -54,7 +54,7 @@ def detection(don_inference, ka_inference, song, filepath):
             post_max=2,
             pre_avg=4,
             post_avg=5,
-            delta=0.05,
+            delta=delta,
             wait=3,
         )
         + 7

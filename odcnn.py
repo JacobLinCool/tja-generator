@@ -24,7 +24,7 @@ class ODCNN:
 
         self.device = device
 
-    def run(self, file: str) -> Tuple[str, str]:
+    def run(self, file: str, delta=0.05) -> Tuple[str, str]:
         data, sr = sf.read(file, always_2d=True)
         song = Audio(data, sr)
         song.data = song.data.mean(axis=1)
@@ -44,7 +44,7 @@ class ODCNN:
         ka_inference = np.reshape(ka_inference, (-1))
 
         synthesized_path = tempfile.NamedTemporaryFile(suffix=".mp3", delete=False).name
-        detection(don_inference, ka_inference, song, synthesized_path)
+        detection(don_inference, ka_inference, song, synthesized_path, delta=delta)
         file = Path(file)
         tja = create_tja(
             song,

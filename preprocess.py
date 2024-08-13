@@ -1,9 +1,9 @@
-import soundfile as sf
 import matplotlib.pyplot as plt
 import numpy as np
+import soundfile as sf
+from librosa.filters import mel
 from scipy import signal
 from scipy.fftpack import fft
-from librosa.filters import mel
 
 
 class Audio:
@@ -36,20 +36,17 @@ class Audio:
         self.timestamp = []
 
     def plotaudio(self, start_t, stop_t):
-
         plt.plot(
             np.linspace(start_t, stop_t, stop_t - start_t), self.data[start_t:stop_t, 0]
         )
         plt.show()
 
     def save(self, filename, start_t=0, stop_t=None):
-
         if stop_t is None:
             stop_t = self.data.shape[0]
         sf.write(filename, self.data[start_t:stop_t], self.samplerate)
 
     def synthesize(self, diff=True, don="./asset/don.wav", ka="./asset/ka.wav"):
-
         donsound = sf.read(don)[0]
         donsound = (donsound[:, 0] + donsound[:, 1]) / 2
         kasound = sf.read(ka)[0]
@@ -137,7 +134,6 @@ def fft_and_melscale(
     feat_channels = []
 
     for nfft in nffts:
-
         feats = []
         window = signal.windows.blackmanharris(nfft)
         filt = mel(

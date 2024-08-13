@@ -1,10 +1,12 @@
 import os
-import gradio as gr
 from typing import Tuple
+
+import gradio as gr
 from accelerate import Accelerator
+from huggingface_hub import hf_hub_download
+
 from odcnn import ODCNN
 from youtube import youtube
-from huggingface_hub import hf_hub_download
 
 accelerator = Accelerator()
 device = accelerator.device
@@ -20,8 +22,8 @@ KA_MODEL = hf_hub_download(
 models = {"odcnn-320k-100": ODCNN(DON_MODEL, KA_MODEL, device)}
 
 
-def run(file: str, model: str) -> Tuple[str, str]:
-    return models[model].run(file)
+def run(file: str, model: str, delta: float) -> Tuple[str, str]:
+    return models[model].run(file, delta)
 
 
 def from_youtube(url: str, model: str) -> Tuple[str, str, str]:
@@ -71,9 +73,19 @@ with gr.Blocks() as app:
         with gr.Column():
             tja = gr.Text(label="TJA", interactive=False)
 
+    with gr.Accordion("Advanced Options", open=False):
+        delta = gr.Slider(
+            label="Delta",
+            value=0.05,
+            minimum=0.01,
+            maximum=1.0,
+            step=0.01,
+            info="Threshold for note detection",
+        )
+
     btn.click(
         fn=run,
-        inputs=[audio, model],
+        inputs=[audio, model, delta],
         outputs=[synthesized, tja],
         api_name="run",
     )

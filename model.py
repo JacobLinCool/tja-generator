@@ -1,8 +1,9 @@
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import numpy as np
 from tqdm import tqdm
+
 from preprocess import *
 
 
@@ -14,7 +15,6 @@ class convNet(nn.Module):
     """
 
     def __init__(self):
-
         super(convNet, self).__init__()
         # model
         self.conv1 = nn.Conv2d(3, 10, (3, 7))
@@ -24,7 +24,6 @@ class convNet(nn.Module):
         self.fc3 = nn.Linear(120, 1)
 
     def forward(self, x, istraining=False, minibatch=1):
-
         x = F.max_pool2d(F.relu(self.conv1(x)), (3, 1))
         x = F.max_pool2d(F.relu(self.conv2(x)), (3, 1))
         x = F.dropout(x.view(minibatch, -1), training=istraining)
@@ -34,7 +33,6 @@ class convNet(nn.Module):
         return F.sigmoid(self.fc3(x))
 
     def infer_data_builder(self, feats, soundlen=15, minibatch=1):
-
         x = []
 
         for i in range(feats.shape[2] - soundlen):
@@ -48,7 +46,6 @@ class convNet(nn.Module):
             yield (torch.from_numpy(np.array(x)).float())
 
     def infer(self, feats, device, minibatch=1):
-
         with torch.no_grad():
             inference = None
             for x in tqdm(
