@@ -7,7 +7,7 @@ from pathlib import Path
 
 from model import convNet
 from preprocess import Audio, fft_and_melscale
-from synthesize import create_tja, detection
+from synthesize import create_tja, detect, synthesize
 
 
 class ODCNN:
@@ -43,13 +43,24 @@ class ODCNN:
         ka_inference = self.kaNet.infer(song.feats, self.device, minibatch=4192)
         ka_inference = np.reshape(ka_inference, (-1))
 
+        easy_detection = detect(don_inference, ka_inference, delta=0.25)
+        normal_detection = detect(don_inference, ka_inference, delta=0.2)
+        hard_detection = detect(don_inference, ka_inference, delta=0.15)
+        oni_detection = detect(don_inference, ka_inference, delta=0.075)
+        ura_detection = detect(don_inference, ka_inference, delta=delta)
+
         synthesized_path = tempfile.NamedTemporaryFile(suffix=".mp3", delete=False).name
-        detection(don_inference, ka_inference, song, synthesized_path, delta=delta)
+        synthesize(*hard_detection, song, synthesized_path)
         file = Path(file)
         tja = create_tja(
             song,
-            song.don_timestamp,
-            song.ka_timestamp,
+            timestamps=[
+                easy_detection,
+                normal_detection,
+                hard_detection,
+                oni_detection,
+                ura_detection,
+            ],
             title=file.stem,
             wave=file.name,
         )

@@ -1,3 +1,4 @@
+from typing import List
 import numpy as np
 from librosa.util import peak_pick
 
@@ -29,9 +30,7 @@ def smooth(x, window_len=11, window="hanning"):
     return y
 
 
-def detection(don_inference, ka_inference, song, filepath, delta=0.05):
-    """detects notes disnotesiresultg don and ka"""
-
+def detect(don_inference, ka_inference, delta=0.05):
     don_inference = smooth(don_inference, 5)
     ka_inference = smooth(ka_inference, 5)
 
@@ -63,17 +62,25 @@ def detection(don_inference, ka_inference, song, filepath, delta=0.05):
     print(don_timestamp)
     print(ka_timestamp)
 
-    song.don_timestamp = don_timestamp[
+    don_timestamp = don_timestamp[
         np.where(don_inference[don_timestamp] > ka_inference[don_timestamp])
     ]
+
+    ka_timestamp = ka_timestamp[
+        np.where(ka_inference[ka_timestamp] > don_inference[ka_timestamp])
+    ]
+
+    return don_timestamp, ka_timestamp
+
+
+def synthesize(don_timestamp, ka_timestamp, song, filepath):
+    song.don_timestamp = don_timestamp
     song.timestamp = song.don_timestamp * 512 / song.samplerate
     # print(len(song.timestamp))
     song.synthesize(diff="don")
 
     # song.ka_timestamp = song.don_timestamp
-    song.ka_timestamp = ka_timestamp[
-        np.where(ka_inference[ka_timestamp] > don_inference[ka_timestamp])
-    ]
+    song.ka_timestamp = ka_timestamp
     song.timestamp = song.ka_timestamp * 512 / song.samplerate
     # print(len(song.timestamp))
     song.synthesize(diff="ka")
@@ -83,39 +90,21 @@ def detection(don_inference, ka_inference, song, filepath, delta=0.05):
 
 def create_tja(
     song,
-    don_timestamp,
-    ka_timestamp=None,
+    timestamps: List[tuple],
     title="untitled",
     subtitle="--",
     wave="untitled.ogg",
     safezone=2,
 ):
-    tja = ""
+    tja = f"TITLE: {title}\nSUBTITLE: {subtitle}\nBPM: 240\nWAVE:{wave}\nOFFSET:0\n\n"
 
-    if ka_timestamp is None:
-        timestamp = don_timestamp * 512 / song.samplerate
-        tja += f"TITLE: {title}\nSUBTITLE: {subtitle}\nBPM: 240\nWAVE:{wave}\nOFFSET:0\n#START\n"
-        i = 0
-        time = 0
-        while i < len(timestamp):
-            if time / 100 >= timestamp[i]:
-                tja += "1"
-                i += 1
-            else:
-                tja += "0"
-            if time % 100 == 99:
-                tja += ",\n"
-            time += 1
-        tja += "\n#END"
+    for i, (don, ka) in enumerate(timestamps):
+        level = [3, 5, 7, 8, 9][i]
+        scroll = [0.6, 0.7, 0.8, 0.9, 1.0][i]
+        tja += f"COURSE:{i}\nLEVEL:{level}\n\n#START\n#SCROLL {scroll}\n"
 
-    else:
-        don_timestamp = np.rint(don_timestamp * 512 / song.samplerate * 100).astype(
-            np.int32
-        )
-        ka_timestamp = np.rint(ka_timestamp * 512 / song.samplerate * 100).astype(
-            np.int32
-        )
-        tja += f"TITLE: {title}\nSUBTITLE: {subtitle}\nBPM: 240\nWAVE:{wave}\nOFFSET:0\n#START\n"
+        don_timestamp = np.rint(don * 512 / song.samplerate * 100).astype(np.int32)
+        ka_timestamp = np.rint(ka * 512 / song.samplerate * 100).astype(np.int32)
         length = np.max((don_timestamp[-1], ka_timestamp[-1]))
         safezone_keep = 0
         for time in range(length):
@@ -132,6 +121,6 @@ def create_tja(
                 tja += ",\n"
         if length % 100 != 0:
             tja += "0" * (100 - (length % 100)) + ",\n"
-        tja += "\n#END"
+        tja += "#END\n\n"
 
     return tja

@@ -1,5 +1,7 @@
 import os
+from tempfile import NamedTemporaryFile
 from typing import Tuple
+from zipfile import ZipFile
 
 import gradio as gr
 from accelerate import Accelerator
@@ -22,13 +24,24 @@ KA_MODEL = hf_hub_download(
 models = {"odcnn-320k-100": ODCNN(DON_MODEL, KA_MODEL, device)}
 
 
-def run(file: str, model: str, delta: float) -> Tuple[str, str]:
-    return models[model].run(file, delta)
+def run(file: str, model: str, delta: float) -> Tuple[str, str, str]:
+    preview, tja = models[model].run(file, delta)
+
+    with NamedTemporaryFile(
+        "w", suffix=".tja", delete=True
+    ) as tjafile, NamedTemporaryFile("w", suffix=".zip", delete=False) as zfile:
+        tjafile.write(tja)
+
+        with ZipFile(zfile.name, "w") as z:
+            z.write(file, os.path.basename(file))
+            z.write(tjafile.name, f"{os.path.basename(file)}-{model}.tja")
+
+    return preview, tja, zfile.name
 
 
-def from_youtube(url: str, model: str) -> Tuple[str, str, str]:
+def from_youtube(url: str, model: str, delta: float) -> Tuple[str, str, str, str]:
     audio = youtube(url)
-    return audio, *run(audio, model)
+    return audio, *run(audio, model, delta)
 
 
 with gr.Blocks() as app:
@@ -73,27 +86,30 @@ with gr.Blocks() as app:
         with gr.Column():
             tja = gr.Text(label="TJA", interactive=False)
 
+    with gr.Row():
+        zip = gr.File(label="Download ZIP", type="filepath")
+
     with gr.Accordion("Advanced Options", open=False):
         delta = gr.Slider(
             label="Delta",
-            value=0.05,
+            value=0.02,
             minimum=0.01,
-            maximum=1.0,
+            maximum=0.5,
             step=0.01,
-            info="Threshold for note detection",
+            info="Threshold for note detection (Ura)",
         )
 
     btn.click(
         fn=run,
         inputs=[audio, model, delta],
-        outputs=[synthesized, tja],
+        outputs=[synthesized, tja, zip],
         api_name="run",
     )
 
     yt_btn.click(
         fn=from_youtube,
-        inputs=[yt, model],
-        outputs=[audio, synthesized, tja],
+        inputs=[yt, model, delta],
+        outputs=[audio, synthesized, tja, zip],
     )
 
 app.queue().launch(server_name="0.0.0.0")
