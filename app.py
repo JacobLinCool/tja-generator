@@ -24,8 +24,8 @@ KA_MODEL = hf_hub_download(
 models = {"odcnn-320k-100": ODCNN(DON_MODEL, KA_MODEL, device)}
 
 
-def run(file: str, model: str, delta: float) -> Tuple[str, str, str]:
-    preview, tja = models[model].run(file, delta)
+def run(file: str, model: str, delta: float, trim: bool) -> Tuple[str, str, str]:
+    preview, tja = models[model].run(file, delta, trim)
 
     with NamedTemporaryFile(
         "w", suffix=".tja", delete=True
@@ -39,9 +39,11 @@ def run(file: str, model: str, delta: float) -> Tuple[str, str, str]:
     return preview, tja, zfile.name
 
 
-def from_youtube(url: str, model: str, delta: float) -> Tuple[str, str, str, str]:
+def from_youtube(
+    url: str, model: str, delta: float, trim: bool
+) -> Tuple[str, str, str, str]:
     audio = youtube(url)
-    return audio, *run(audio, model, delta)
+    return audio, *run(audio, model, delta, trim)
 
 
 with gr.Blocks() as app:
@@ -98,17 +100,22 @@ with gr.Blocks() as app:
             step=0.01,
             info="Threshold for note detection (Ura)",
         )
+        trim = gr.Checkbox(
+            label="Trim silence",
+            value=True,
+            info="Trim silence from the start and end of the audio",
+        )
 
     btn.click(
         fn=run,
-        inputs=[audio, model, delta],
+        inputs=[audio, model, delta, trim],
         outputs=[synthesized, tja, zip],
         api_name="run",
     )
 
     yt_btn.click(
         fn=from_youtube,
-        inputs=[yt, model, delta],
+        inputs=[yt, model, delta, trim],
         outputs=[audio, synthesized, tja, zip],
     )
 

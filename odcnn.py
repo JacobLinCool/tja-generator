@@ -10,6 +10,22 @@ from preprocess import Audio, fft_and_melscale
 from synthesize import create_tja, detect, synthesize
 
 
+def trim_silence(data: np.ndarray, sr: int):
+    start = 0
+    end = len(data) - 1
+    while start < len(data) and np.abs(data[start]) < 0.2:
+        start += 1
+    while end > 0 and np.abs(data[end]) < 0.1:
+        end -= 1
+    start = max(start - sr * 3, 0)
+    end = min(end + sr * 3, len(data))
+    print(
+        f"Trimming {start/sr} seconds from the start and {end/sr} seconds from the end"
+    )
+    data = data[start:end]
+    return data
+
+
 class ODCNN:
     def __init__(self, don_model: str, ka_model: str, device: torch.device = "cpu"):
         donNet = convNet()
@@ -24,10 +40,13 @@ class ODCNN:
 
         self.device = device
 
-    def run(self, file: str, delta=0.05) -> Tuple[str, str]:
+    def run(self, file: str, delta=0.05, trim=True) -> Tuple[str, str]:
         data, sr = sf.read(file, always_2d=True)
         song = Audio(data, sr)
         song.data = song.data.mean(axis=1)
+        if trim:
+            song.data = trim_silence(song.data, sr)
+
         song.feats = fft_and_melscale(
             song,
             nhop=512,
